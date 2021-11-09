@@ -18,26 +18,11 @@ if ARGV.empty?
   exit(1)
 end
 
-puts "---event"
-p event
-
-# repo = push["repository"]["full_name"]
-# pulls = github.pull_requests(repo, state: "open")
 repo = event["repository"]["full_name"]
-puts "---repo"
-p repo
 
-# push_head = push["after"]
-# puts "---push_head"
-# p push_head
-# pr = pulls.find { |pr| pr["head"]["sha"] == push_head }
-# puts "---pr"
-# p pr
 if ENV.fetch("GITHUB_EVENT_NAME") == "pull_request"
   pr_number = event["number"]
-  puts "---- pull_request"
 else
-  puts "---- commit"
   pulls = github.pull_requests(repo, state: "open")
   push_head = event["after"]
   pr = pulls.find { |pr| pr["head"]["sha"] == push_head }
@@ -48,12 +33,6 @@ else
   end
   pr_number = pr["number"]
 end
-# if !pr
-#   puts "Couldn't find an open pull request for branch with head at #{push_head}."
-#   exit(1)
-# end
-puts "---pr_number"
-p pr_number
 
 message = File.read(ARGV.join(''))
 
