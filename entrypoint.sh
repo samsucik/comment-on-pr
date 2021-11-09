@@ -18,11 +18,20 @@ if ARGV.empty?
   exit(1)
 end
 
+puts "---push"
+p push
+
 repo = push["repository"]["full_name"]
 pulls = github.pull_requests(repo, state: "open")
+puts "---pulls"
+p pulls
 
 push_head = push["after"]
+puts "---push_head"
+p push_head
 pr = pulls.find { |pr| pr["head"]["sha"] == push_head }
+puts "---pr"
+p pr
 
 if !pr
   puts "Couldn't find an open pull request for branch with head at #{push_head}."
