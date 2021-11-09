@@ -4,7 +4,7 @@ require "json"
 require "octokit"
 
 json = File.read(ENV.fetch("GITHUB_EVENT_PATH"))
-push = JSON.parse(json)
+event = JSON.parse(json)
 
 github = Octokit::Client.new(access_token: ENV["GITHUB_TOKEN"])
 
@@ -18,29 +18,46 @@ if ARGV.empty?
   exit(1)
 end
 
-puts "---push"
-p push
+puts "---event"
+p event
 
-repo = push["repository"]["full_name"]
-pulls = github.pull_requests(repo, state: "open")
-puts "---pulls"
-p pulls
+# repo = push["repository"]["full_name"]
+# pulls = github.pull_requests(repo, state: "open")
+repo = event["repository"]["full_name"]
+puts "---repo"
+p repo
 
-push_head = push["after"]
-puts "---push_head"
-p push_head
-pr = pulls.find { |pr| pr["head"]["sha"] == push_head }
-puts "---pr"
-p pr
-
-if !pr
-  puts "Couldn't find an open pull request for branch with head at #{push_head}."
-  exit(1)
+# push_head = push["after"]
+# puts "---push_head"
+# p push_head
+# pr = pulls.find { |pr| pr["head"]["sha"] == push_head }
+# puts "---pr"
+# p pr
+if ENV.fetch("GITHUB_EVENT_NAME") == "pull_request"
+  pr_number = event["number"]
+  puts "---- pull_request"
+else
+  puts "---- commit"
+  pulls = github.pull_requests(repo, state: "open")
+  push_head = event["after"]
+  pr = pulls.find { |pr| pr["head"]["sha"] == push_head }
+  
+  if !pr
+    puts "Couldn't find an open pull request for branch with head at #{push_head}."
+    exit(1)
+  end
+  pr_number = pr["number"]
 end
+# if !pr
+#   puts "Couldn't find an open pull request for branch with head at #{push_head}."
+#   exit(1)
+# end
+puts "---pr_number"
+p pr_number
 
 message = File.read(ARGV.join(''))
 
-coms = github.issue_comments(repo, pr["number"])
+coms = github.issue_comments(repo, pr_number)
 duplicate = coms.find { |c| c["user"]["login"] == "github-actions[bot]" && c["body"] == message }
 
 if duplicate
@@ -48,4 +65,4 @@ if duplicate
   exit(0)
 end
 
-github.add_comment(repo, pr["number"], message)
+github.add_comment(repo, pr_number, message)
